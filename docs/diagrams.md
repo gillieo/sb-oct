@@ -38,6 +38,7 @@ flowchart LR
         configure["configure_logging()"]
         stderr_fmt["stderr_format()"]
         levels["LEVEL_SHORT_NAMES"]
+        log_path["log_file_path()"]
         app_main["main()"]
     end
 
@@ -74,6 +75,8 @@ flowchart LR
     build_path --> slugify
 
     configure --> stderr_fmt
+    configure --> log_path
+    log_path --> notes_dir
     stderr_fmt --> levels
     app_main --> configure
     app_main -.->|"not called by the CLI"| cli_fn
@@ -103,7 +106,7 @@ flowchart LR
     subgraph env["Environment variables"]
         e1["SECOND_BRAIN_DIR<br/>default ~/second_brain/"]
         e2["LOG_LEVEL<br/>default INFO"]
-        e3["LOG_FILE<br/>default app.log"]
+        e3["LOG_FILE<br/>default app.log in SECOND_BRAIN_DIR"]
     end
 
     group["cli group<br/>--help"]
@@ -143,6 +146,7 @@ flowchart LR
     group --> logging
     e2 --> logging
     e3 --> logging
+    e1 --> logging
 
     group --> n_args
     group --> l_args

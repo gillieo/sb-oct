@@ -73,8 +73,14 @@ lines and errors go to stderr, so stdout can be piped or captured safely.
 | Variable           | Default            | Description                        |
 |--------------------|--------------------|------------------------------------|
 | `LOG_LEVEL`        | `INFO`             | Console log level (DEBUG, INFO, …) |
-| `LOG_FILE`         | `app.log`          | Path to the log file               |
+| `LOG_FILE`         | `app.log`          | Log file (see below)               |
 | `SECOND_BRAIN_DIR` | `~/second_brain/`  | Directory where notes are stored   |
+
+By default the log file is `app.log` inside the notes directory, so running the
+CLI from any folder never leaves a stray log behind. An absolute `LOG_FILE` is
+used as-is; a relative one is resolved against `SECOND_BRAIN_DIR`, not the
+current directory. The directory is created on the first run, and `list` and
+`show` only read `*.md` files, so the log never appears in their numbering.
 
 Copy `.env.example` to `.env` for development defaults, then run with `uv run --env-file .env`.
 

@@ -23,16 +23,17 @@ A small Click CLI (`second_brain` → `second_brain.cli:cli`) that stores notes 
 
 - `cli.py` — Click group and the `new` / `list` / `show` commands. Handles I/O only: stdout carries results, stderr carries log lines and errors (`show` exits 1 on failure). The group callback calls `configure_logging()`. The `--help` text is the user-facing documentation, so keep it in sync with behavior.
 - `notes.py` — all note logic with no printing: `notes_dir()`, `slugify`, `split_title_body`, `build_note_path`, `create_note`, `list_note_files`, `read_note`. Put new behavior here so it stays testable.
-- `app.py` — loguru setup (`configure_logging`, compact stderr format). Its `main()` is only a setup smoke check; the CLI does not use it.
+- `app.py` — loguru setup (`configure_logging`, `log_file_path`, compact stderr format). Its `main()` is only a setup smoke check; the CLI does not use it.
 
 Behaviors that span files:
 - `list` and `show` both number notes via `list_note_files()` (reverse-sorted `*.md`, newest first), so the number `list` prints is the one `show` accepts. Don't change the ordering in one place only.
 - Notes are named `YYYY-MM-DD-<slug>.md`, never overwritten (`-1`, `-2` suffix), and contain `# heading`, optional body, then an ISO timestamp. A multi-line title is split so newlines never reach the heading or filename.
-- Environment is read lazily on each call (`SECOND_BRAIN_DIR`, default `~/second_brain/`; `LOG_LEVEL`; `LOG_FILE`, default `app.log`), not at import time.
+- Environment is read lazily on each call (`SECOND_BRAIN_DIR`, default `~/second_brain/`; `LOG_LEVEL`; `LOG_FILE`, default `app.log` inside the notes directory — relative paths resolve against it, absolute ones are used as-is), not at import time.
+- `configure_logging()` runs before every subcommand and creates the log file's directory, so by default the notes directory exists after any run (even `--help`). `list`/`show` only glob `*.md`, so `app.log` there never affects numbering.
 
 ## Testing notes
 
-`tests/conftest.py` has an autouse fixture that points `LOG_FILE` at a temp path, and a `tmp_note_dir` fixture that redirects `SECOND_BRAIN_DIR`. Use them so tests never touch the real notes directory or `app.log`.
+`tests/conftest.py` has an autouse fixture that points `LOG_FILE` at a temp path, and a `tmp_note_dir` fixture that redirects `SECOND_BRAIN_DIR`. Use them so tests never touch the real notes directory or `app.log`. A test that unsets `LOG_FILE` must also use `tmp_note_dir`, or the default log lands in `~/second_brain/`.
 
 ## Docs
 
