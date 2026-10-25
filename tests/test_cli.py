@@ -393,3 +393,79 @@ def test_cli_survives_unusable_default_log_location(tmp_path, monkeypatch):
     logger.remove()
     assert result.exit_code == 0
     assert "does not exist" in result.output
+
+
+# ---------------------------------------------------------------------------
+# default command: the TUI
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def tui_calls(monkeypatch):
+    """Replace the TUI launcher with a recorder and pretend a terminal is attached."""
+    import second_brain.tui
+
+    calls = []
+    monkeypatch.setattr(second_brain.tui, "run", lambda: calls.append("run"))
+    monkeypatch.setattr("second_brain.cli._interactive", lambda: True)
+    return calls
+
+
+def test_cli_without_arguments_launches_tui(tui_calls):
+    result = runner.invoke(cli, [])
+    assert result.exit_code == 0
+    assert tui_calls == ["run"]
+
+
+@pytest.mark.parametrize("args", [["list"], ["new", "Idea"], ["--help"]])
+def test_cli_subcommands_do_not_launch_tui(tui_calls, tmp_note_dir, args):
+    runner.invoke(cli, args)
+    assert tui_calls == []
+
+
+def test_cli_without_arguments_and_no_terminal_prints_help(tmp_note_dir, monkeypatch):
+    """Piped or scripted runs must not block on a full-screen app."""
+    import second_brain.tui
+
+    def fail():
+        raise AssertionError("TUI launched without a terminal")
+
+    monkeypatch.setattr(second_brain.tui, "run", fail)
+    monkeypatch.setattr("second_brain.cli._interactive", lambda: False)
+    result = runner.invoke(cli, [])
+    assert result.exit_code == 0
+    assert "Usage:" in result.output
+    assert "list" in result.output
+
+
+def test_cli_tui_mode_keeps_stderr_clear_of_log_lines(tui_calls, capfd):
+    runner.invoke(cli, [])
+    logger.info("would corrupt the screen")
+    logger.remove()
+    assert "would corrupt the screen" not in capfd.readouterr().err
+
+
+def test_cli_group_help_mentions_tui():
+    out = runner.invoke(cli, ["--help"]).output
+    assert "TUI" in out
+
+
+@pytest.mark.parametrize(
+    ("stdin_tty", "stdout_tty", "expected"),
+    [(True, True, True), (True, False, False), (False, True, False)],
+)
+def test_interactive_needs_both_streams_on_a_terminal(
+    monkeypatch, stdin_tty, stdout_tty, expected
+):
+    from second_brain.cli import _interactive
+
+    class Stream:
+        def __init__(self, tty):
+            self.tty = tty
+
+        def isatty(self):
+            return self.tty
+
+    monkeypatch.setattr("sys.stdin", Stream(stdin_tty))
+    monkeypatch.setattr("sys.stdout", Stream(stdout_tty))
+    assert _interactive() is expected

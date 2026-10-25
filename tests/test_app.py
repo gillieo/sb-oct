@@ -176,3 +176,19 @@ def test_configure_logging_survives_unusable_log_location(tmp_path, monkeypatch,
     err = capfd.readouterr().err
     assert "File logging disabled" in err
     assert "still logging" in err
+
+
+def test_configure_logging_without_console_keeps_stderr_silent(capfd):
+    configure_logging(console=False)
+    logger.info("file only")
+    logger.remove()
+    assert capfd.readouterr().err == ""
+    with open(os.environ["LOG_FILE"]) as f:
+        assert "file only" in f.read()
+
+
+def test_configure_logging_console_is_on_by_default(capfd):
+    configure_logging()
+    logger.info("to the console")
+    logger.remove()
+    assert "to the console" in capfd.readouterr().err

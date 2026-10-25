@@ -13,6 +13,7 @@ from second_brain.notes import (
     read_note,
     slugify,
     split_title_body,
+    strip_heading_marker,
 )
 
 # ---------------------------------------------------------------------------
@@ -289,3 +290,43 @@ def test_create_note_does_not_overwrite_when_body_differs(tmp_path):
     assert path1 != path2
     assert "one" in path1.read_text()
     assert "two" in path2.read_text()
+
+
+# ---------------------------------------------------------------------------
+# strip_heading_marker (text typed into a markdown editor)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("# Title", "Title"),
+        ("## Sub\nbody", "Sub\nbody"),
+        ("\n\n# Title\nbody", "Title\nbody"),
+        ("Plain title", "Plain title"),
+        ("#hashtag idea", "#hashtag idea"),
+        ("# ", ""),
+        ("body\n# not first", "body\n# not first"),
+        ("####### seven", "####### seven"),
+    ],
+    ids=[
+        "h1",
+        "h2_with_body",
+        "leading_blank_lines",
+        "no_marker",
+        "hashtag_not_heading",
+        "marker_only",
+        "only_first_line",
+        "seven_hashes",
+    ],
+)
+def test_strip_heading_marker(text, expected):
+    assert strip_heading_marker(text) == expected
+
+
+def test_create_note_from_stripped_markdown_has_single_heading(tmp_path):
+    text = strip_heading_marker("# Caching idea\n\nUse an LRU.")
+    path = create_note(text, tmp_path, now=FIXED_NOW)
+    assert path.read_text() == (
+        "# Caching idea\n\nUse an LRU.\n\n2026-03-22T14:30:00\n"
+    )
