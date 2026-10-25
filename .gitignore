@@ -219,7 +219,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Project additions
+# Project
 .ruff_cache
 *.log
 site/

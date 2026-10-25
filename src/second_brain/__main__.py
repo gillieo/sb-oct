@@ -1,3 +1,4 @@
-from second_brain.app import main
+from second_brain.cli import cli
 
-main()
+if __name__ == "__main__":
+    cli()

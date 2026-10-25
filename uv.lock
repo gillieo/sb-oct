@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -787,6 +787,7 @@ name = "second-brain"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
+    { name = "click" },
     { name = "loguru" },
 ]
 
@@ -802,7 +803,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "loguru" }]
+requires-dist = [
+    { name = "click", specifier = ">=8.1,<9" },
+    { name = "loguru" },
+]
 
 [package.metadata.requires-dev]
 dev = [
