@@ -3,7 +3,9 @@
 import re
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
+from loguru import logger
 
 from second_brain.cli import cli
 
@@ -345,3 +347,49 @@ def test_cli_show_help_explains_number_and_errors():
     assert "second_brain list" in out
     assert "exit" in out.lower()
     assert "stderr" in out
+
+
+# ---------------------------------------------------------------------------
+# log file location
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("args", [["new", "Idea"], ["list"], ["show", "1"]])
+def test_cli_leaves_no_log_in_cwd(tmp_path, tmp_note_dir, monkeypatch, args):
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    monkeypatch.delenv("LOG_FILE")
+    runner.invoke(cli, args)
+    logger.remove()
+    assert not (cwd / "app.log").exists()
+    assert (tmp_note_dir / "app.log").is_file()
+
+
+def test_cli_list_and_show_ignore_log_file(tmp_note_dir, monkeypatch):
+    monkeypatch.delenv("LOG_FILE")
+    runner.invoke(cli, ["new", "Only note"])
+    listing = runner.invoke(cli, ["list"]).output
+    logger.remove()
+    assert (tmp_note_dir / "app.log").is_file()
+    assert "app.log" not in listing
+    assert len(re.findall(r"^\d+\. ", listing, re.MULTILINE)) == 1
+    assert "# Only note" in runner.invoke(cli, ["show", "1"]).output
+
+
+def test_cli_group_help_mentions_log_file():
+    out = runner.invoke(cli, ["--help"]).output
+    assert "LOG_FILE" in out
+    assert "app.log" in out
+
+
+def test_cli_survives_unusable_default_log_location(tmp_path, monkeypatch):
+    """Regression: a notes dir that can't hold app.log crashed every command."""
+    not_a_dir = tmp_path / "afile"
+    not_a_dir.write_text("not a directory")
+    monkeypatch.setenv("SECOND_BRAIN_DIR", str(not_a_dir))
+    monkeypatch.delenv("LOG_FILE")
+    result = runner.invoke(cli, ["list"])
+    logger.remove()
+    assert result.exit_code == 0
+    assert "does not exist" in result.output
