@@ -9,6 +9,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 DEFAULT_DIR_NAME = "second_brain"
+HEADING_MARKER = re.compile(r"^#{1,6}[ \t]+")
 
 
 def notes_dir() -> Path:
@@ -83,6 +84,23 @@ def split_title_body(title: str, body: str | None = None) -> tuple[str, str]:
     if body is not None:
         parts.append(_clean_block(body.replace("\r\n", "\n").replace("\r", "\n")))
     return heading, "\n\n".join(p for p in parts if p)
+
+
+def strip_heading_marker(text: str) -> str:
+    """Drop a Markdown heading marker from the first line of editor text.
+
+    `create_note` writes the `# ` itself, so a title typed as `# Idea` in a
+    Markdown editor would otherwise end up as `# # Idea`. Leading blank lines
+    are dropped too. Only a marker followed by whitespace counts, so a
+    `#hashtag` is left alone, and only the first line is touched.
+
+    Args:
+        text: Raw text typed into the editor.
+
+    Returns:
+        The text without leading blank lines or a first-line `#`..`######`.
+    """
+    return HEADING_MARKER.sub("", text.lstrip("\r\n"), count=1)
 
 
 def create_note(

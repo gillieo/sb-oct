@@ -60,12 +60,13 @@ def log_file_path() -> Path:
     return path if path.is_absolute() else notes_dir() / path
 
 
-def configure_logging():
+def configure_logging(console: bool = True):
     """Configure loguru for console and file logging.
 
     Removes the default handler and sets up:
     - stderr handler at LOG_LEVEL (default: INFO, configurable via env var),
-      using the compact `stderr_format`
+      using the compact `stderr_format`; skipped when `console` is false, as
+      log lines would corrupt a full-screen TUI
     - File handler at DEBUG level writing to `log_file_path` (default:
       `app.log` in the notes directory), using loguru's default format. The
       file's parent directory is created if it is missing.
@@ -73,11 +74,16 @@ def configure_logging():
     If the log file cannot be created or opened (for example a read-only notes
     directory), a warning goes to stderr and logging continues without the
     file handler, so read-only commands such as `list` still work.
+
+    Args:
+        console: Whether to add the stderr handler. Pass False while the TUI
+            owns the terminal.
     """
     log_level = os.environ.get("LOG_LEVEL", "INFO")
     log_file = log_file_path()
     logger.remove()
-    logger.add(sys.stderr, level=log_level, format=stderr_format)
+    if console:
+        logger.add(sys.stderr, level=log_level, format=stderr_format)
     try:
         log_file.parent.mkdir(parents=True, exist_ok=True)
         logger.add(log_file, level="DEBUG", rotation="50 KB", retention=1)
