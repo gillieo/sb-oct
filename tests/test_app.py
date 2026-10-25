@@ -163,3 +163,16 @@ def test_configure_logging_absolute_log_file_leaves_notes_dir_alone(tmp_note_dir
     configure_logging()
     logger.remove()
     assert not tmp_note_dir.exists()
+
+
+def test_configure_logging_survives_unusable_log_location(tmp_path, monkeypatch, capfd):
+    """A log file that cannot be created must not stop the CLI from running."""
+    blocker = tmp_path / "blocker"
+    blocker.write_text("a file, not a directory")
+    monkeypatch.setenv("LOG_FILE", str(blocker / "sub" / "x.log"))
+    configure_logging()
+    logger.info("still logging")
+    logger.remove()
+    err = capfd.readouterr().err
+    assert "File logging disabled" in err
+    assert "still logging" in err

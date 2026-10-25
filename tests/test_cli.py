@@ -381,3 +381,15 @@ def test_cli_group_help_mentions_log_file():
     out = runner.invoke(cli, ["--help"]).output
     assert "LOG_FILE" in out
     assert "app.log" in out
+
+
+def test_cli_survives_unusable_default_log_location(tmp_path, monkeypatch):
+    """Regression: a notes dir that can't hold app.log crashed every command."""
+    not_a_dir = tmp_path / "afile"
+    not_a_dir.write_text("not a directory")
+    monkeypatch.setenv("SECOND_BRAIN_DIR", str(not_a_dir))
+    monkeypatch.delenv("LOG_FILE")
+    result = runner.invoke(cli, ["list"])
+    logger.remove()
+    assert result.exit_code == 0
+    assert "does not exist" in result.output

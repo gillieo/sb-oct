@@ -69,13 +69,20 @@ def configure_logging():
     - File handler at DEBUG level writing to `log_file_path` (default:
       `app.log` in the notes directory), using loguru's default format. The
       file's parent directory is created if it is missing.
+
+    If the log file cannot be created or opened (for example a read-only notes
+    directory), a warning goes to stderr and logging continues without the
+    file handler, so read-only commands such as `list` still work.
     """
     log_level = os.environ.get("LOG_LEVEL", "INFO")
     log_file = log_file_path()
-    log_file.parent.mkdir(parents=True, exist_ok=True)
     logger.remove()
     logger.add(sys.stderr, level=log_level, format=stderr_format)
-    logger.add(log_file, level="DEBUG", rotation="50 KB", retention=1)
+    try:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        logger.add(log_file, level="DEBUG", rotation="50 KB", retention=1)
+    except OSError as exc:
+        logger.warning("File logging disabled: {}", exc)
 
 
 @logger.catch

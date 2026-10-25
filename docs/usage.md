@@ -80,7 +80,9 @@ By default the log file is `app.log` inside the notes directory, so running the
 CLI from any folder never leaves a stray log behind. An absolute `LOG_FILE` is
 used as-is; a relative one is resolved against `SECOND_BRAIN_DIR`, not the
 current directory. The directory is created on the first run, and `list` and
-`show` only read `*.md` files, so the log never appears in their numbering.
+`show` only read `*.md` files, so the log never appears in their numbering. If
+the log file can't be created (for example a read-only notes directory), a
+warning is printed on stderr and the command carries on without file logging.
 
 Copy `.env.example` to `.env` for development defaults, then run with `uv run --env-file .env`.
 

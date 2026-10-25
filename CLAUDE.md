@@ -29,7 +29,7 @@ Behaviors that span files:
 - `list` and `show` both number notes via `list_note_files()` (reverse-sorted `*.md`, newest first), so the number `list` prints is the one `show` accepts. Don't change the ordering in one place only.
 - Notes are named `YYYY-MM-DD-<slug>.md`, never overwritten (`-1`, `-2` suffix), and contain `# heading`, optional body, then an ISO timestamp. A multi-line title is split so newlines never reach the heading or filename.
 - Environment is read lazily on each call (`SECOND_BRAIN_DIR`, default `~/second_brain/`; `LOG_LEVEL`; `LOG_FILE`, default `app.log` inside the notes directory — relative paths resolve against it, absolute ones are used as-is), not at import time.
-- `configure_logging()` runs before every subcommand and creates the log file's directory, so by default the notes directory exists after any run (even `--help`). `list`/`show` only glob `*.md`, so `app.log` there never affects numbering.
+- `configure_logging()` runs before every subcommand and creates the log file's directory (if the file can't be opened it warns on stderr and carries on without it), so by default the notes directory exists after any run (even `--help`). `list`/`show` only glob `*.md`, so `app.log` there never affects numbering.
 
 ## Testing notes
 
