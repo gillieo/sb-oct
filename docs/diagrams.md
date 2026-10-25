@@ -32,6 +32,12 @@ flowchart LR
         slugify["slugify()"]
         list_files["list_note_files()"]
         read_note["read_note()"]
+        strip_hm["strip_heading_marker()"]
+    end
+
+    subgraph tui_group["Terminal UI: tui.py"]
+        tui_run["run()"]
+        tui_app["SecondBrainApp<br/>list + editor"]
     end
 
     subgraph log_group["Logging: app.py"]
@@ -45,6 +51,7 @@ flowchart LR
     subgraph ext["Third-party libraries"]
         click_lib["click"]
         loguru_lib["loguru"]
+        textual_lib["textual"]
     end
 
     subgraph std["Standard library"]
@@ -57,6 +64,13 @@ flowchart LR
     mainpy -->|"imports cli"| cli_fn
 
     cli_fn -->|"every run"| configure
+    cli_fn -->|"no subcommand + terminal"| tui_run
+    tui_run --> tui_app
+    tui_app --> notes_dir
+    tui_app --> list_files
+    tui_app --> read_note
+    tui_app --> create_note
+    tui_app --> strip_hm
     cli_fn --> new_fn
     cli_fn --> list_fn
     cli_fn --> show_fn
@@ -84,6 +98,7 @@ flowchart LR
     cli_group -->|"decorators, echo"| click_lib
     cli_group -->|"logger"| loguru_lib
     log_group -->|"sinks"| loguru_lib
+    tui_group -->|"widgets"| textual_lib
     notes_dir --> os_lib
     list_files --> os_lib
     slugify --> text_lib
@@ -110,6 +125,7 @@ flowchart LR
     end
 
     group["cli group<br/>--help"]
+    tui["no arguments: TUI<br/>(help if no terminal)"]
     logging["configure_logging()<br/>stderr + log file"]
 
     subgraph new_cmd["new TITLE"]
@@ -144,6 +160,7 @@ flowchart LR
     a2 --> group
     a3 --> group
     group --> logging
+    group --> tui
     e2 --> logging
     e3 --> logging
     e1 --> logging
@@ -169,6 +186,8 @@ branches show what happens when something is missing.
 ```mermaid
 flowchart LR
     start(["Have an idea"]) --> new["second_brain new 'Caching idea'<br/>--body 'Use an LRU.'"]
+    start --> tuiflow["second_brain (no arguments)<br/>TUI: pick a note or press Create"]
+    tuiflow --> done
 
     new --> saved["Note saved as<br/>YYYY-MM-DD-caching-idea.md"]
     saved --> path["Full path printed"]

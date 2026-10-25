@@ -21,19 +21,23 @@ uv run mkdocs build                      # build static docs
 
 A small Click CLI (`second_brain` → `second_brain.cli:cli`) that stores notes as plain markdown files. Source is in `src/second_brain/`.
 
-- `cli.py` — Click group and the `new` / `list` / `show` commands. Handles I/O only: stdout carries results, stderr carries log lines and errors (`show` exits 1 on failure). The group callback calls `configure_logging()`. The `--help` text is the user-facing documentation, so keep it in sync with behavior.
+- `cli.py` — Click group and the `new` / `list` / `show` commands. Handles I/O only: stdout carries results, stderr carries log lines and errors (`show` exits 1 on failure). The group callback calls `configure_logging()`; with no subcommand it launches the TUI (lazy-importing `tui.py`), or prints help when `_interactive()` says there is no terminal. The `--help` text is the user-facing documentation, so keep it in sync with behavior.
 - `notes.py` — all note logic with no printing: `notes_dir()`, `slugify`, `split_title_body`, `build_note_path`, `create_note`, `list_note_files`, `read_note`. Put new behavior here so it stays testable.
+- `tui.py` — Textual app (`SecondBrainApp`, `run`): a note list + Create button on the left, a read-only/editable markdown `TextArea` on the right, Save/Cancel while drafting. Reuses `notes.py` for all file work; keep it to widgets and wiring.
 - `app.py` — loguru setup (`configure_logging`, `log_file_path`, compact stderr format). Its `main()` is only a setup smoke check; the CLI does not use it.
 
 Behaviors that span files:
 - `list` and `show` both number notes via `list_note_files()` (reverse-sorted `*.md`, newest first), so the number `list` prints is the one `show` accepts. Don't change the ordering in one place only.
 - Notes are named `YYYY-MM-DD-<slug>.md`, never overwritten (`-1`, `-2` suffix), and contain `# heading`, optional body, then an ISO timestamp. A multi-line title is split so newlines never reach the heading or filename.
 - Environment is read lazily on each call (`SECOND_BRAIN_DIR`, default `~/second_brain/`; `LOG_LEVEL`; `LOG_FILE`, default `app.log` inside the notes directory — relative paths resolve against it, absolute ones are used as-is), not at import time.
+- In TUI mode `configure_logging(console=False)` drops the stderr handler, because log lines would corrupt the full-screen display; everything still goes to the log file.
 - `configure_logging()` runs before every subcommand and creates the log file's directory (if the file can't be opened it warns on stderr and carries on without it), so by default the notes directory exists after any run (even `--help`). `list`/`show` only glob `*.md`, so `app.log` there never affects numbering.
 
 ## Testing notes
 
 `tests/conftest.py` has an autouse fixture that points `LOG_FILE` at a temp path, and a `tmp_note_dir` fixture that redirects `SECOND_BRAIN_DIR`. Use them so tests never touch the real notes directory or `app.log`. A test that unsets `LOG_FILE` must also use `tmp_note_dir`, or the default log lands in `~/second_brain/`.
+
+TUI tests (`tests/test_tui.py`) drive `SecondBrainApp` headlessly with `app.run_test()` and Pilot; they are `async def` and run under pytest-asyncio's `asyncio_mode = "auto"` (set in `pyproject.toml`), so no marker is needed. Use `tmp_note_dir` there too. CLI tests replace `second_brain.tui.run` and `second_brain.cli._interactive` rather than starting the app.
 
 ## Docs
 

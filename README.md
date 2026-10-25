@@ -11,7 +11,7 @@ uv sync
 
 ## Usage
 
-The CLI exposes three subcommands so far:
+Run `uv run second_brain` for the interactive TUI (see below), or use the three subcommands:
 
 ```bash
 uv run second_brain new "My brilliant idea"   # save a note as markdown
@@ -42,6 +42,26 @@ uv run python -m second_brain new "My brilliant idea"
 ```
 
 The CLI documents itself, including examples. Start with `uv run second_brain --help`, then `uv run second_brain <command> --help` (`new`, `list`, `show`). Results go to stdout and log lines to stderr, so output can be piped or captured safely.
+
+## Interactive TUI
+
+Run `second_brain` with no arguments to open a terminal UI:
+
+```bash
+uv run second_brain
+```
+
+The left sidebar is a scrollable list of your notes (newest first) with a **Create** button at the bottom; the right side is a markdown editor. Selecting a note shows it read-only. **Create** opens an empty draft with **Save** and **Cancel** buttons: the first line is the title, the rest is the body, and a leading `# ` on the title is fine. While a draft is open the list is locked, so it can't be lost by clicking another note.
+
+| Key      | Action                   |
+|----------|--------------------------|
+| `↑` `↓`  | Move through the notes   |
+| `Ctrl+N` | Create a note            |
+| `Ctrl+S` | Save the draft           |
+| `Esc`    | Cancel the draft         |
+| `Ctrl+Q` | Quit                     |
+
+When there is no terminal (output piped or run from a script), `second_brain` prints its help instead of starting the TUI. Log lines never go to the screen in TUI mode; they only go to the log file.
 
 ## Environment Variables
 
