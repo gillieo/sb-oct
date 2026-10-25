@@ -1,6 +1,12 @@
+import os
 import sys
+from pathlib import Path
 
 from loguru import logger
+
+from second_brain.notes import notes_dir
+
+DEFAULT_LOG_FILE = "app.log"
 
 LEVEL_SHORT_NAMES = {
     "TRACE": "TRC",
@@ -39,19 +45,34 @@ def stderr_format(record: dict) -> str:
     )
 
 
+def log_file_path() -> Path:
+    """Return the log file path, from `LOG_FILE` or `app.log` in the notes dir.
+
+    Read lazily on every call so the environment stays authoritative. An empty
+    `LOG_FILE` counts as unset. A leading `~` is expanded, an absolute path is
+    used as-is, and a relative path is resolved against the notes directory
+    (never the current working directory).
+
+    Returns:
+        The path the file handler should write to.
+    """
+    path = Path(os.environ.get("LOG_FILE") or DEFAULT_LOG_FILE).expanduser()
+    return path if path.is_absolute() else notes_dir() / path
+
+
 def configure_logging():
     """Configure loguru for console and file logging.
 
     Removes the default handler and sets up:
     - stderr handler at LOG_LEVEL (default: INFO, configurable via env var),
       using the compact `stderr_format`
-    - File handler at DEBUG level writing to LOG_FILE (default: app.log),
-      using loguru's default format
+    - File handler at DEBUG level writing to `log_file_path` (default:
+      `app.log` in the notes directory), using loguru's default format. The
+      file's parent directory is created if it is missing.
     """
-    import os
-
     log_level = os.environ.get("LOG_LEVEL", "INFO")
-    log_file = os.environ.get("LOG_FILE", "app.log")
+    log_file = log_file_path()
+    log_file.parent.mkdir(parents=True, exist_ok=True)
     logger.remove()
     logger.add(sys.stderr, level=log_level, format=stderr_format)
     logger.add(log_file, level="DEBUG", rotation="50 KB", retention=1)

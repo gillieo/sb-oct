@@ -5,7 +5,12 @@ import re
 import pytest
 from loguru import logger
 
-from second_brain.app import configure_logging, main, stderr_format
+from second_brain.app import (
+    configure_logging,
+    log_file_path,
+    main,
+    stderr_format,
+)
 
 STDERR_LINE = re.compile(
     r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| INF \| "
@@ -103,3 +108,58 @@ def test_log_file_format_unchanged():
         r"second_brain\.app:main:\d+ - Hello from second_brain!",
         content,
     ), content
+
+
+# ---------------------------------------------------------------------------
+# log file location
+# ---------------------------------------------------------------------------
+
+
+def test_log_file_path_defaults_to_notes_dir(tmp_note_dir, monkeypatch):
+    monkeypatch.delenv("LOG_FILE")
+    assert log_file_path() == tmp_note_dir / "app.log"
+
+
+def test_log_file_path_empty_env_uses_default(tmp_note_dir, monkeypatch):
+    monkeypatch.setenv("LOG_FILE", "")
+    assert log_file_path() == tmp_note_dir / "app.log"
+
+
+def test_log_file_path_absolute_used_as_is(tmp_path, tmp_note_dir, monkeypatch):
+    target = tmp_path / "elsewhere" / "x.log"
+    monkeypatch.setenv("LOG_FILE", str(target))
+    assert log_file_path() == target
+
+
+def test_log_file_path_relative_resolves_against_notes_dir(tmp_note_dir, monkeypatch):
+    monkeypatch.setenv("LOG_FILE", "logs/debug.log")
+    assert log_file_path() == tmp_note_dir / "logs" / "debug.log"
+
+
+def test_log_file_path_expands_tilde(tmp_path, tmp_note_dir, monkeypatch):
+    monkeypatch.setenv("LOG_FILE", "~/x.log")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    assert log_file_path() == tmp_path / "x.log"
+
+
+def test_configure_logging_writes_default_log_in_notes_dir(tmp_note_dir, monkeypatch):
+    monkeypatch.delenv("LOG_FILE")
+    configure_logging()
+    logger.info("default location check")
+    logger.remove()
+    assert "default location check" in (tmp_note_dir / "app.log").read_text()
+
+
+def test_configure_logging_creates_missing_log_dir(tmp_note_dir, monkeypatch):
+    monkeypatch.setenv("LOG_FILE", "logs/debug.log")
+    configure_logging()
+    logger.info("nested location check")
+    logger.remove()
+    log = tmp_note_dir / "logs" / "debug.log"
+    assert "nested location check" in log.read_text()
+
+
+def test_configure_logging_absolute_log_file_leaves_notes_dir_alone(tmp_note_dir):
+    configure_logging()
+    logger.remove()
+    assert not tmp_note_dir.exists()
